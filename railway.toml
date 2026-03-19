@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+buildCommand = "composer install && php artisan config:cache && php artisan route:cache"
+
+[deploy]
+startCommand = "php artisan serve --host=0.0.0.0 --port=$PORT"
+healthcheckPath = "/api/health" # Assurez-vous d'avoir une route qui répond 200
+restartPolicyType = "on-failure"
+
+[services.database]
