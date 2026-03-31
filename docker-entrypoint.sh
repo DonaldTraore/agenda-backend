@@ -10,13 +10,28 @@ fi
 
 # Injecter les variables d'environnement Railway dans .env
 echo "Injection des variables d'environnement..."
-sed -i "s|APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
-sed -i "s|APP_ENV=.*|APP_ENV=${APP_ENV:-production}|" .env
-sed -i "s|DB_HOST=.*|DB_HOST=${DB_HOST}|" .env
-sed -i "s|DB_PORT=.*|DB_PORT=${DB_PORT:-3306}|" .env
-sed -i "s|DB_DATABASE=.*|DB_DATABASE=${DB_DATABASE}|" .env
-sed -i "s|DB_USERNAME=.*|DB_USERNAME=${DB_USERNAME}|" .env
-sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env
+cat > .env << EOF
+APP_NAME=Laravel
+APP_ENV=${APP_ENV:-production}
+APP_KEY=${APP_KEY}
+APP_DEBUG=${APP_DEBUG:-false}
+APP_URL=${APP_URL:-http://localhost}
+
+DB_CONNECTION=mysql
+DB_HOST=${DB_HOST}
+DB_PORT=${DB_PORT:-3306}
+DB_DATABASE=${DB_DATABASE}
+DB_USERNAME=${DB_USERNAME}
+DB_PASSWORD=${DB_PASSWORD}
+
+JWT_SECRET=${JWT_SECRET}
+
+CACHE_DRIVER=file
+SESSION_DRIVER=file
+QUEUE_CONNECTION=sync
+EOF
+
+echo "✓ .env configuré"
 
 # Générer APP_KEY si elle est vide
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
@@ -25,14 +40,14 @@ if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
 fi
 
 # Générer JWT_SECRET s'il est vide
-if ! grep -q "JWT_SECRET=" .env || [ -z "$(grep JWT_SECRET .env | cut -d'=' -f2)" ]; then
+if [ -z "$JWT_SECRET" ]; then
     echo "Génération de JWT_SECRET..."
     php artisan jwt:secret --force 2>/dev/null || true
 fi
 
 echo "=== Diagnostic connexion BD ==="
 echo "DB_HOST: ${DB_HOST}"
-echo "DB_PORT: ${DB_PORT}"
+echo "DB_PORT: ${DB_PORT:-3306}"
 echo "DB_DATABASE: ${DB_DATABASE}"
 echo "DB_USERNAME: ${DB_USERNAME}"
 
@@ -44,7 +59,7 @@ for i in {1..30}; do
   fi
   echo "Tentative $i/30: Base de données non prête, attente..."
   if [ $i -eq 30 ]; then
-    echo "❌ Impossible de se connecter à la BD. Vérifiez les variables Railway."
+    echo "❌ Impossible de se connecter. Erreur:"
     php artisan migrate:status 2>&1 || true
     exit 1
   fi
